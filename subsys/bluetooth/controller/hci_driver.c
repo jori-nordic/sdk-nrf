@@ -19,6 +19,8 @@
 #include <sdc_hci_vs.h>
 #include "multithreading_lock.h"
 #include "hci_internal.h"
+#include <nrf.h>
+#include <nrfx.h>
 
 #define BT_DBG_ENABLED IS_ENABLED(CONFIG_BT_DEBUG_HCI_DRIVER)
 #define LOG_MODULE_NAME sdc_hci_driver
@@ -353,6 +355,9 @@ static void recv_thread(void *p1, void *p2, void *p3)
 		if (!received_evt && !received_data) {
 			/* Wait for a signal from the controller. */
 			k_sem_take(&sem_recv, K_FOREVER);
+#if defined(CONFIG_SOC_SERIES_NRF53X)
+			NRF_P1_NS->OUTSET = 1<<6;
+#endif
 		}
 
 		received_evt = fetch_and_process_hci_evt(&hci_buffer[0]);
@@ -362,6 +367,9 @@ static void recv_thread(void *p1, void *p2, void *p3)
 		}
 
 		/* Let other threads of same priority run in between. */
+#if defined(CONFIG_SOC_SERIES_NRF53X)
+			NRF_P1_NS->OUTCLR = 1<<6;
+#endif
 		k_yield();
 	}
 }
