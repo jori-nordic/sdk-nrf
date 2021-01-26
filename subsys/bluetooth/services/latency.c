@@ -31,6 +31,8 @@ static ssize_t received_latency_request(struct bt_conn *conn,
 {
 	LOG_DBG("Received Latency request, data %p length %u", buf, len);
 
+	/* printk("Latency service CB\n"); */
+
 	if (callbacks && callbacks->latency_request) {
 		callbacks->latency_request(buf, len);
 	}

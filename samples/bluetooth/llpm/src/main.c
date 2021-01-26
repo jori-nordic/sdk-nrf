@@ -20,12 +20,16 @@
 #include <bluetooth/gatt_dm.h>
 #include <sdc_hci_vs.h>
 
+#include <nrf.h>
+#include <nrfx.h>
+#include <init.h>
+
 #define DEVICE_NAME	CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)
 #define INTERVAL_MIN    0x50     /* 80 units,  100 ms */
 #define INTERVAL_MAX    0x50     /* 80 units,  100 ms */
-#define INTERVAL_LLPM   0x0D01   /* Proprietary  1 ms */
-#define INTERVAL_LLPM_US 1000
+#define INTERVAL_LLPM   0x0D02   /* Proprietary  1 ms */
+#define INTERVAL_LLPM_US 2000
 
 static volatile bool test_ready;
 static struct bt_conn *default_conn;
@@ -68,8 +72,8 @@ void scan_filter_no_match(struct bt_scan_device_info *device_info,
 
 	bt_addr_le_to_str(device_info->recv_info->addr, addr, sizeof(addr));
 
-	printk("Filter does not match. Address: %s connectable: %d\n",
-	       addr, connectable);
+	/* printk("Filter does not match. Address: %s connectable: %d\n", */
+	/*        addr, connectable); */
 }
 
 void scan_connecting_error(struct bt_scan_device_info *device_info)
@@ -333,6 +337,8 @@ static void latency_response_handler(const void *buf, uint16_t len)
 {
 	uint32_t latency_time;
 
+	/* printk("Latency application CB\n"); */
+
 	if (len == sizeof(latency_time)) {
 		/* compute how long the time spent */
 		latency_time = *((uint32_t *)buf);
@@ -393,6 +399,30 @@ static void test_run(void)
 		memset(&llpm_latency, 0, sizeof(llpm_latency));
 	}
 }
+
+#if defined(CONFIG_SOC_SERIES_NRF53X)
+static int network_gpio_allow(const struct device *dev)
+{
+	ARG_UNUSED(dev);
+
+	NRF_P1_S->DIRSET = (1<<16) - 1;
+	NRF_P1_S->OUTSET = (1<<16) - 1;
+	for(int i=0; i<1000; i++)
+	{
+		i++;
+		i--;
+	}
+	NRF_P1_S->OUTCLR = (1<<16) - 1;
+
+	for (uint32_t i = 0; i < P1_PIN_NUM; i++) {
+		NRF_P1_S->PIN_CNF[i] = (GPIO_PIN_CNF_MCUSEL_NetworkMCU <<
+					GPIO_PIN_CNF_MCUSEL_Pos);
+	}
+
+	return 0;
+}
+SYS_INIT(network_gpio_allow, PRE_KERNEL_1, CONFIG_KERNEL_INIT_PRIORITY_OBJECTS);
+#endif
 
 void main(void)
 {
