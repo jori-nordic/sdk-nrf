@@ -167,6 +167,18 @@ static void advertise_and_scan(void)
 	printk("Scanning successfully started\n");
 }
 
+static void le_phy_updated_cb(struct bt_conn *conn,
+			      struct bt_conn_le_phy_info *param)
+{
+	printk("Phy updated: %p: %u / %u\n", conn, param->tx_phy, param->rx_phy);
+
+	int err = bt_gatt_dm_start(default_conn, BT_UUID_LATENCY, &discovery_cb,
+			       &latency_client);
+	if (err) {
+		printk("Discover failed (err %d)\n", err);
+	}
+}
+
 static void connected(struct bt_conn *conn, uint8_t err)
 {
 	if (err) {
@@ -190,11 +202,8 @@ static void connected(struct bt_conn *conn, uint8_t err)
 	bt_le_adv_stop();
 	bt_scan_stop();
 
-	err = bt_gatt_dm_start(default_conn, BT_UUID_LATENCY, &discovery_cb,
-			       &latency_client);
-	if (err) {
-		printk("Discover failed (err %d)\n", err);
-	}
+	/* Update to 2Mbit PHY */
+	bt_conn_le_phy_update(default_conn, BT_CONN_LE_PHY_PARAM_2M);
 }
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
@@ -431,6 +440,7 @@ void main(void)
 		.connected = connected,
 		.disconnected = disconnected,
 		.le_param_updated = le_param_updated,
+		.le_phy_updated = le_phy_updated_cb,
 	};
 
 	printk("Starting Bluetooth LLPM example\n");
