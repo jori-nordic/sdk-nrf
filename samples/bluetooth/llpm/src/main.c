@@ -19,13 +19,14 @@
 #include <bluetooth/scan.h>
 #include <bluetooth/gatt_dm.h>
 #include <sdc_hci_vs.h>
+#include <init.h>
 
 #define DEVICE_NAME	CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)
 #define INTERVAL_MIN    0x50     /* 80 units,  100 ms */
 #define INTERVAL_MAX    0x50     /* 80 units,  100 ms */
-#define INTERVAL_LLPM   0x0D01   /* Proprietary  1 ms */
-#define INTERVAL_LLPM_US 1000
+#define INTERVAL_LLPM   0x0D02   /* Proprietary  1 ms */
+#define INTERVAL_LLPM_US 2000
 
 static volatile bool test_ready;
 static struct bt_conn *default_conn;
