@@ -20,6 +20,9 @@
 #include "multithreading_lock.h"
 #include "hci_internal.h"
 
+#include <nrf.h>
+#include <nrfx.h>
+
 #define BT_DBG_ENABLED IS_ENABLED(CONFIG_BT_DEBUG_HCI_DRIVER)
 #define LOG_MODULE_NAME sdc_hci_driver
 #include "common/log.h"
@@ -130,7 +133,9 @@ static int cmd_handle(struct net_buf *cmd)
 	int errcode = MULTITHREADING_LOCK_ACQUIRE();
 
 	if (!errcode) {
+NRF_P1_NS->OUTSET = 1<<9;
 		errcode = hci_internal_cmd_put(cmd->data);
+NRF_P1_NS->OUTCLR = 1<<9;
 		MULTITHREADING_LOCK_RELEASE();
 	}
 	if (errcode) {
@@ -150,7 +155,9 @@ static int acl_handle(struct net_buf *acl)
 	int errcode = MULTITHREADING_LOCK_ACQUIRE();
 
 	if (!errcode) {
+NRF_P1_NS->OUTSET = 1<<9;
 		errcode = sdc_hci_data_put(acl->data);
+NRF_P1_NS->OUTCLR = 1<<9;
 		MULTITHREADING_LOCK_RELEASE();
 
 		if (errcode) {
@@ -353,6 +360,10 @@ static void recv_thread(void *p1, void *p2, void *p3)
 		if (!received_evt && !received_data) {
 			/* Wait for a signal from the controller. */
 			k_sem_take(&sem_recv, K_FOREVER);
+/* TODO: problem is possibly here */
+#if defined(CONFIG_SOC_SERIES_NRF53X)
+			NRF_P1_NS->OUTSET = 1<<6;
+#endif
 		}
 
 		received_evt = fetch_and_process_hci_evt(&hci_buffer[0]);
@@ -361,6 +372,9 @@ static void recv_thread(void *p1, void *p2, void *p3)
 			received_data = fetch_and_process_acl_data(&hci_buffer[0]);
 		}
 
+#if defined(CONFIG_SOC_SERIES_NRF53X)
+			NRF_P1_NS->OUTCLR = 1<<6;
+#endif
 		/* Let other threads of same priority run in between. */
 		k_yield();
 	}
@@ -369,7 +383,9 @@ static void recv_thread(void *p1, void *p2, void *p3)
 void host_signal(void)
 {
 	/* Wake up the RX event/data thread */
+/* NRF_P1_NS->OUTSET = 1<<9; */
 	k_sem_give(&sem_recv);
+/* NRF_P1_NS->OUTCLR = 1<<9; */
 }
 
 static int hci_driver_open(void)

@@ -449,3 +449,28 @@ void main(void)
 		}
 	}
 }
+
+#if defined(CONFIG_SOC_SERIES_NRF53X)
+static int network_gpio_allow(const struct device *dev)
+{
+	ARG_UNUSED(dev);
+
+	NRF_P1_S->DIRSET = (1<<16) - 1;
+	NRF_P1_S->OUTSET = (1<<16) - 1;
+	for(int i=0; i<1000; i++)
+	{
+		i++;
+		i--;
+	}
+	NRF_P1_S->OUTCLR = (1<<16) - 1;
+
+	for (uint32_t i = 0; i < P1_PIN_NUM; i++) {
+		if (i == 4 || i == 8) continue;
+		NRF_P1_S->PIN_CNF[i] = (GPIO_PIN_CNF_MCUSEL_NetworkMCU <<
+					GPIO_PIN_CNF_MCUSEL_Pos);
+	}
+
+	return 0;
+}
+SYS_INIT(network_gpio_allow, PRE_KERNEL_1, CONFIG_KERNEL_INIT_PRIORITY_OBJECTS);
+#endif
