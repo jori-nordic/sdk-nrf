@@ -404,6 +404,9 @@ void main(void)
 		.le_param_updated = le_param_updated,
 	};
 
+	printk("Increasing frequency\n");
+	NRF_CLOCK_S->HFCLKCTRL = 0;
+
 	printk("Starting Bluetooth LLPM example\n");
 
 	console_init();
