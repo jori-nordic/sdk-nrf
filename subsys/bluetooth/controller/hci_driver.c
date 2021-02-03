@@ -133,9 +133,9 @@ static int cmd_handle(struct net_buf *cmd)
 	int errcode = MULTITHREADING_LOCK_ACQUIRE();
 
 	if (!errcode) {
-NRF_P1_NS->OUTSET = 1<<9;
+/* NRF_P1_NS->OUTSET = 1<<9; */
 		errcode = hci_internal_cmd_put(cmd->data);
-NRF_P1_NS->OUTCLR = 1<<9;
+/* NRF_P1_NS->OUTCLR = 1<<9; */
 		MULTITHREADING_LOCK_RELEASE();
 	}
 	if (errcode) {
@@ -155,9 +155,9 @@ static int acl_handle(struct net_buf *acl)
 	int errcode = MULTITHREADING_LOCK_ACQUIRE();
 
 	if (!errcode) {
-NRF_P1_NS->OUTSET = 1<<9;
+/* NRF_P1_NS->OUTSET = 1<<9; */
 		errcode = sdc_hci_data_put(acl->data);
-NRF_P1_NS->OUTCLR = 1<<9;
+/* NRF_P1_NS->OUTCLR = 1<<9; */
 		MULTITHREADING_LOCK_RELEASE();
 
 		if (errcode) {
