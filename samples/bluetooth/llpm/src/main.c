@@ -469,7 +469,8 @@ static int network_gpio_allow(const struct device *dev)
 	NRF_P1_S->OUTCLR = (1<<16) - 1;
 
 	for (uint32_t i = 0; i < P1_PIN_NUM; i++) {
-		if (i == 4 || i == 8) continue;
+		/* if (i == 4 || i == 8) continue; */
+		if (i == 4) continue;
 		NRF_P1_S->PIN_CNF[i] = (GPIO_PIN_CNF_MCUSEL_NetworkMCU <<
 					GPIO_PIN_CNF_MCUSEL_Pos);
 	}
