@@ -278,6 +278,7 @@ static int enable_llpm_short_connection_interval(void)
 	return 0;
 }
 
+#if !defined(CONFIG_SOC_SERIES_NRF53X)
 static bool on_vs_evt(struct net_buf_simple *buf)
 {
 	uint8_t code;
@@ -328,6 +329,7 @@ static int enable_qos_conn_evt_report(void)
 	printk("Connection event reports enabled\n");
 	return 0;
 }
+#endif
 
 static void latency_response_handler(const void *buf, uint16_t len)
 {
@@ -438,10 +440,14 @@ void main(void)
 
 	advertise_and_scan();
 
+#if defined(CONFIG_SOC_SERIES_NRF53X)
+	printk("Running on nRF53, QoS reports not enabled.\n");
+#else
 	if (enable_qos_conn_evt_report()) {
 		printk("Enable LLPM QoS failed.\n");
 		return;
 	}
+#endif
 
 	for (;;) {
 		if (test_ready) {
