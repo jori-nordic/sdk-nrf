@@ -967,5 +967,12 @@ int hci_internal_evt_get(uint8_t *evt_out)
 		return 0;
 	}
 
-	return sdc_hci_evt_get(evt_out);
+#if defined(CONFIG_SOC_SERIES_NRF53X)
+			NRF_P1_NS->OUTSET = 1<<8;
+#endif
+	int err = sdc_hci_evt_get(evt_out);
+#if defined(CONFIG_SOC_SERIES_NRF53X)
+			NRF_P1_NS->OUTCLR = 1<<8;
+#endif
+	return err;
 }

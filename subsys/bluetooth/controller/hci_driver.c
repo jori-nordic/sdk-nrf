@@ -312,7 +312,6 @@ static void event_packet_process(uint8_t *hci_buf)
 static bool fetch_and_process_hci_evt(uint8_t *p_hci_buffer)
 {
 	int errcode;
-
 	errcode = MULTITHREADING_LOCK_ACQUIRE();
 	if (!errcode) {
 		errcode = hci_internal_evt_get(p_hci_buffer);
@@ -331,11 +330,17 @@ static bool fetch_and_process_acl_data(uint8_t *p_hci_buffer)
 {
 	int errcode;
 
+#if defined(CONFIG_SOC_SERIES_NRF53X)
+			NRF_P1_NS->OUTSET = 1<<7;
+#endif
 	errcode = MULTITHREADING_LOCK_ACQUIRE();
 	if (!errcode) {
 		errcode = sdc_hci_data_get(p_hci_buffer);
 		MULTITHREADING_LOCK_RELEASE();
 	}
+#if defined(CONFIG_SOC_SERIES_NRF53X)
+			NRF_P1_NS->OUTCLR = 1<<7;
+#endif
 
 	if (errcode) {
 		return false;
@@ -361,19 +366,18 @@ static void recv_thread(void *p1, void *p2, void *p3)
 			/* Wait for a signal from the controller. */
 			k_sem_take(&sem_recv, K_FOREVER);
 /* TODO: problem is possibly here */
-#if defined(CONFIG_SOC_SERIES_NRF53X)
-			NRF_P1_NS->OUTSET = 1<<6;
-#endif
 		}
 
+#if defined(CONFIG_SOC_SERIES_NRF53X)
+			NRF_P1_NS->OUTSET = 1<<5;
+#endif
 		received_evt = fetch_and_process_hci_evt(&hci_buffer[0]);
 
 		if (IS_ENABLED(CONFIG_BT_CONN)) {
 			received_data = fetch_and_process_acl_data(&hci_buffer[0]);
 		}
-
 #if defined(CONFIG_SOC_SERIES_NRF53X)
-			NRF_P1_NS->OUTCLR = 1<<6;
+			NRF_P1_NS->OUTCLR = 1<<5;
 #endif
 		/* Let other threads of same priority run in between. */
 		k_yield();

@@ -23,10 +23,10 @@
 
 #define DEVICE_NAME	CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)
-#define INTERVAL_MIN    6     /* 80 units,  100 ms */
-#define INTERVAL_MAX    6     /* 80 units,  100 ms */
-#define INTERVAL_LLPM   0x0D02   /* Proprietary  1 ms */
-#define INTERVAL_LLPM_US 2000
+#define INTERVAL_MIN    20     /* 80 units,  100 ms */
+#define INTERVAL_MAX    20     /* 80 units,  100 ms */
+#define INTERVAL_LLPM   0x0D01   /* Proprietary  1 ms */
+#define INTERVAL_LLPM_US 1000
 
 static volatile bool test_ready;
 static struct bt_conn *default_conn;
@@ -442,10 +442,10 @@ void main(void)
 
 	advertise_and_scan();
 
-	if (enable_qos_conn_evt_report()) {
-		printk("Enable LLPM QoS failed.\n");
-		return;
-	}
+	/* if (enable_qos_conn_evt_report()) { */
+	/* 	printk("Enable LLPM QoS failed.\n"); */
+	/* 	return; */
+	/* } */
 
 	for (;;) {
 		if (test_ready) {
