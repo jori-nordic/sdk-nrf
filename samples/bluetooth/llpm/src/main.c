@@ -351,6 +351,8 @@ static void latency_response_handler(const void *buf, uint16_t len)
 static const struct bt_latency_client_cb latency_client_cb = {
 	.latency_response = latency_response_handler
 };
+extern volatile uint32_t c_hit;
+extern volatile uint32_t c_miss;
 
 static void test_run(void)
 {
@@ -397,6 +399,8 @@ static void test_run(void)
 		}
 
 		memset(&llpm_latency, 0, sizeof(llpm_latency));
+		printk("Radio ISR Cache hits: %d, misses: %d\n", c_hit, c_miss);
+		/* printk("cache config: %x\n", NRF_NVMC_NS->ICACHECNF); */
 	}
 }
 
@@ -537,7 +541,9 @@ void main(void)
 
 	setup_pin_toggling();
 	/* disable I-cache */
-	NRF_NVMC_NS->ICACHECNF &= ~NVMC_ICACHECNF_CACHEEN_Msk;
+	/* NRF_NVMC_NS->ICACHECNF &= ~NVMC_ICACHECNF_CACHEEN_Msk; */
+	/* enable I-cache (and profiling) */
+	NRF_NVMC_NS->ICACHECNF |= NVMC_ICACHECNF_CACHEEN_Msk | NVMC_ICACHECNF_CACHEPROFEN_Msk;
 	/* timing_init(); */
 	setup_timer();
 
