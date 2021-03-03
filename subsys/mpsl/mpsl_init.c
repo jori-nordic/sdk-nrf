@@ -104,13 +104,13 @@ ISR_DIRECT_DECLARE(mpsl_radio_isr_wrapper)
 {
 #if defined(CONFIG_SOC_NRF5340_CPUNET_QKAA)
 /* NRF_P1_NS->OUTSET = 1 << 9; */
-#endif
 	NRF_NVMC_NS->IHIT = 0;
 	NRF_NVMC_NS->IMISS = 0;
+#endif
 	MPSL_IRQ_RADIO_Handler();
+#if defined(CONFIG_SOC_NRF5340_CPUNET_QKAA)
 	c_hit = NRF_NVMC_NS->IHIT;
 	c_miss = NRF_NVMC_NS->IMISS;
-#if defined(CONFIG_SOC_NRF5340_CPUNET_QKAA)
 /* NRF_P1_NS->OUTCLR = 1 << 9; */
 #endif
 

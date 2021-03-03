@@ -351,9 +351,13 @@ static void latency_response_handler(const void *buf, uint16_t len)
 static const struct bt_latency_client_cb latency_client_cb = {
 	.latency_response = latency_response_handler
 };
+
+#if defined(CONFIG_SOC_NRF5340_CPUNET_QKAA)
 extern volatile uint32_t c_hit;
 extern volatile uint32_t c_miss;
+#endif
 
+volatile bool bootup_complete = 0;
 static void test_run(void)
 {
 	int err;
@@ -379,6 +383,9 @@ static void test_run(void)
 	printk("Press any key to start measuring transmission latency\n");
 	console_getchar();
 
+	/* Enable breakpoint on long IRQ lock */
+	/* See zephyr/include/arch/arm/aarch32/asm_inline_gcc.h */
+
 	/* Start sending the timestamp to its peer */
 	while (default_conn) {
 		uint32_t time = k_cycle_get_32();
@@ -399,7 +406,9 @@ static void test_run(void)
 		}
 
 		memset(&llpm_latency, 0, sizeof(llpm_latency));
+#if defined(CONFIG_SOC_NRF5340_CPUNET_QKAA)
 		printk("Radio ISR Cache hits: %d, misses: %d\n", c_hit, c_miss);
+#endif
 		/* printk("cache config: %x\n", NRF_NVMC_NS->ICACHECNF); */
 	}
 }
@@ -504,9 +513,9 @@ static void setup_pin_toggling(void)
 #define GPIO6 32+8
 
 	/* ppi_trace_config_custom(GPIO7, HAL_DPPI_RADIO_EVENTS_READY_CHANNEL_IDX); */
-	/* ppi_trace_config_custom(GPIO3, HAL_DPPI_RADIO_EVENTS_ADDRESS_CHANNEL_IDX); */
-	/* ppi_trace_config_custom(GPIO4, HAL_DPPI_RADIO_EVENTS_END_CHANNEL_IDX); */
-	/* ppi_trace_config_custom(GPIO4, HAL_DPPI_RADIO_EVENTS_DISABLED_CH_IDX); */
+	ppi_trace_config_custom(GPIO6, HAL_DPPI_RADIO_EVENTS_ADDRESS_CHANNEL_IDX);
+	ppi_trace_config_custom(GPIO5, HAL_DPPI_RADIO_EVENTS_END_CHANNEL_IDX);
+	ppi_trace_config_custom(GPIO7, HAL_DPPI_RADIO_EVENTS_DISABLED_CH_IDX);
 	/* ppi_trace_config_cpu(GPIO6, 16U); */
 }
 
@@ -528,8 +537,9 @@ void main(void)
 	};
 
 	printk("Increasing frequency\n");
-	/* NRF_CLOCK_S->HFCLKCTRL = 0; */
+	NRF_CLOCK_S->HFCLKCTRL = 0;
 
+#if defined(CONFIG_SOC_NRF5340_CPUNET_QKAA)
 	NRF_P1_NS->DIRSET = (1<<16) - 1;
 	NRF_P1_NS->OUTSET = (1<<16) - 1;
 	for(int i=0; i<1000; i++)
@@ -546,6 +556,7 @@ void main(void)
 	NRF_NVMC_NS->ICACHECNF |= NVMC_ICACHECNF_CACHEEN_Msk | NVMC_ICACHECNF_CACHEPROFEN_Msk;
 	/* timing_init(); */
 	setup_timer();
+#endif
 
 	printk("Starting Bluetooth LLPM example\n");
 
@@ -582,10 +593,10 @@ void main(void)
 
 	advertise_and_scan();
 
-	if (enable_qos_conn_evt_report()) {
-		printk("Enable LLPM QoS failed.\n");
-		return;
-	}
+	/* if (enable_qos_conn_evt_report()) { */
+	/* 	printk("Enable LLPM QoS failed.\n"); */
+	/* 	return; */
+	/* } */
 
 	for (;;) {
 		if (test_ready) {
@@ -595,7 +606,7 @@ void main(void)
 }
 
 /* #if defined(CONFIG_SOC_SERIES_NRF53X) */
-#if 0
+#if defined(CONFIG_SOC_NRF5340_CPUAPP_QKAA)
 static int network_gpio_allow(const struct device *dev)
 {
 	ARG_UNUSED(dev);
@@ -611,7 +622,7 @@ static int network_gpio_allow(const struct device *dev)
 
 	for (uint32_t i = 0; i < P1_PIN_NUM; i++) {
 		/* if (i == 4 || i == 8) continue; */
-		if (i == 4) continue;
+		/* if (i == 4) continue; */
 		NRF_P1_S->PIN_CNF[i] = (GPIO_PIN_CNF_MCUSEL_NetworkMCU <<
 					GPIO_PIN_CNF_MCUSEL_Pos);
 	}
@@ -621,144 +632,3 @@ static int network_gpio_allow(const struct device *dev)
 SYS_INIT(network_gpio_allow, PRE_KERNEL_1, CONFIG_KERNEL_INIT_PRIORITY_OBJECTS);
 #endif
 
-void sys_trace_thread_switched_out()
-{
-	/* if (k_current_get() == main_tid) { */
-	/* 	NRF_P1_NS->OUTCLR = 1 << 7; */
-	/* } */
-	/* if (!z_is_idle_thread_object(k_current_get())) { */
-	/* 	NRF_P1_NS->OUTCLR = 1 << 6; */
-	/* } */
-}
-
-extern uint8_t recv_thread_ran;
-void sys_trace_thread_switched_in()
-{
-	/* if (k_current_get() == main_tid) { */
-	/* 	NRF_P1_NS->OUTSET = 1 << 7; */
-	/* } */
-	/* if (!z_is_idle_thread_object(k_current_get())) { */
-		/* NRF_P1_NS->OUTSET = 1 << 6; */
-	/* } */
-	/* if(recv_thread_ran) { */
-	/* 	recv_thread_ran--; */
-	/* 	LOG_ERR("UNT: %s", log_strdup(k_current_get()->name)); */
-	/* } */
-}
-
-void sys_trace_thread_priority_set(struct k_thread *thread)
-{
-}
-
-void sys_trace_thread_create(struct k_thread *thread) {}
-
-void sys_trace_thread_abort(struct k_thread *thread) {}
-
-void sys_trace_thread_suspend(struct k_thread *thread)
-{
-	/* if (!(k_current_get() == main_tid)) { */
-	/* 	NRF_P1_NS->OUTCLR = 1 << 6; */
-	/* }; */
-}
-
-void sys_trace_thread_resume(struct k_thread *thread)
-{
-	/* if (!(k_current_get() == main_tid)) { */
-	/* 	NRF_P1_NS->OUTSET = 1 << 6; */
-	/* }; */
-}
-
-void sys_trace_thread_ready(struct k_thread *thread) {	\
-	if(1) {	\
-		/* NRF_P1_NS->OUTSET = 1<<5;				\ */
-	};								\
-	}
-
-void sys_trace_thread_pend(struct k_thread *thread) {	\
-	if(1) {	\
-		/* NRF_P1_NS->OUTCLR = 1<<5;				\ */
-	};								\
-	}
-
-void sys_trace_thread_info(struct k_thread *thread) {}
-
-void sys_trace_thread_name_set(struct k_thread *thread) {}
-
-__STATIC_FORCEINLINE void delay_unit(void) {
-	/* for(int i=0; i<20; i++) */
-	/* { */
-	/* 	__NOP(); */
-	/* } */
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	/* k_busy_wait fails llpm */
-	/* k_busy_wait(1); */
-};
-
-
-/* #pragma GCC optimize ("O0") */
-void sys_trace_isr_enter()
-{
-	/* int8_t active = (((SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk) >> */
-	/* 		  SCB_ICSR_VECTACTIVE_Pos) - */
-	/* 		 16); */
-
-	/* if(active <0) active = 0; */
-	/* for(; active > 0; active--) */
-	/* { */
-	/* 	NRF_P1_NS->OUTCLR = 1 << 9; */
-	/* 	delay_unit(); */
-	/* 	NRF_P1_NS->OUTSET = 1 << 9; */
-	/* 	delay_unit(); */
-	/* } */
-}
-
-void sys_trace_isr_exit()
-{
-	if (1) {
-		/* NRF_P1_NS->OUTCLR = 1 << 9; */
-	};
-}
-
-void sys_trace_isr_exit_to_scheduler()
-{
-	if (1) {
-		/* NRF_P1_NS->OUTCLR = 1 << 9; */
-		/* delay_unit(); */
-		/* NRF_P1_NS->OUTSET = 1 << 9; */
-		/* delay_unit(); */
-		/* NRF_P1_NS->OUTCLR = 1 << 9; */
-	};
-}
-
-void sys_trace_void(int id)
-{
-}
-
-void sys_trace_end_call(int id) {}
-
-void sys_trace_idle() {}
-
-void sys_trace_semaphore_init(struct k_sem *sem) {}
-
-void sys_trace_semaphore_take(struct k_sem *sem)
-{
-	/* if (1) { */
-	/* 	NRF_P1_NS->OUTSET = 1 << 8; */
-	/* }; */
-}
-
-void sys_trace_semaphore_give(struct k_sem *sem)
-{
-	/* if (1) { */
-	/* 	NRF_P1_NS->OUTCLR = 1 << 8; */
-	/* }; */
-}
-
-void sys_trace_mutex_init(struct k_mutex *mutex) {}
-
-void sys_trace_mutex_lock(struct k_mutex *mutex) {}
-
-void sys_trace_mutex_unlock(struct k_mutex *mutex) {}
