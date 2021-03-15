@@ -16,6 +16,7 @@
 
 #define TIMESLOT_REQUEST_DISTANCE_US (1000000)
 #define TIMESLOT_LENGTH_US           (200)
+#define TIMER_EXPIRY_US (TIMESLOT_LENGTH_US - 50)
 
 #define MPSL_THREAD_PRIO             CONFIG_MPSL_THREAD_COOP_PRIO
 #define STACKSIZE                    CONFIG_MAIN_STACK_SIZE
@@ -72,7 +73,27 @@ static mpsl_timeslot_signal_return_param_t *mpsl_timeslot_callback(
 	mpsl_timeslot_signal_return_param_t *p_ret_val = NULL;
 
 	switch (signal_type) {
+
 	case MPSL_TIMESLOT_SIGNAL_START:
+		/* No return action */
+		signal_callback_return_param.callback_action =
+			MPSL_TIMESLOT_SIGNAL_ACTION_NONE;
+		p_ret_val = &signal_callback_return_param;
+
+		/* Setup timer to trigger an interrupt (and thus the TIMER0
+		 * signal) before timeslot end. */
+		NRF_TIMER0->TASKS_STOP = 1;
+		NRF_TIMER0->TASKS_CLEAR = 1;
+		NRF_TIMER0->MODE = 0;
+		NRF_TIMER0->BITMODE = 0;
+		NRF_TIMER0->PRESCALER = 4; /* 1us period */
+		NRF_TIMER0->CC[0] = TIMER_EXPIRY_US;
+		NRF_TIMER0->INTENSET = (TIMER_INTENSET_COMPARE0_Set
+					<< TIMER_INTENSET_COMPARE0_Pos);
+		NRF_TIMER0->TASKS_START = 1;
+
+		break;
+	case MPSL_TIMESLOT_SIGNAL_TIMER0:
 		if (request_in_cb) {
 			/* Request new timeslot when callback returns */
 			signal_callback_return_param.params.request.p_next =
@@ -84,10 +105,16 @@ static mpsl_timeslot_signal_return_param_t *mpsl_timeslot_callback(
 			signal_callback_return_param.params.request.p_next =
 				NULL;
 			signal_callback_return_param.callback_action =
-				MPSL_TIMESLOT_SIGNAL_ACTION_NONE;
+				MPSL_TIMESLOT_SIGNAL_ACTION_END;
 		}
 
 		p_ret_val = &signal_callback_return_param;
+
+		/* Cleanup TIMER0 IRQ settings */
+		NRF_TIMER0->INTENCLR = (TIMER_INTENSET_COMPARE0_Set << TIMER_INTENSET_COMPARE0_Pos);
+		/* Stop timer */
+		NRF_TIMER0->TASKS_STOP = 1;
+		NRF_TIMER0->TASKS_CLEAR = 1;
 		break;
 	case MPSL_TIMESLOT_SIGNAL_SESSION_IDLE:
 		break;
@@ -205,6 +232,9 @@ static void console_print_thread(void)
 			switch (signal_type) {
 			case MPSL_TIMESLOT_SIGNAL_START:
 				printk("Callback: Timeslot start\n");
+				break;
+			case MPSL_TIMESLOT_SIGNAL_TIMER0:
+				printk("Callback: Timer0 signal\n");
 				break;
 			case MPSL_TIMESLOT_SIGNAL_SESSION_IDLE:
 				printk("Callback: Session idle\n");
