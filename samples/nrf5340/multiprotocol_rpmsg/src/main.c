@@ -29,6 +29,7 @@
 #define BT_DBG_ENABLED 0
 #define LOG_MODULE_NAME hci_rpmsg
 #include "common/log.h"
+#include <logging/log_ctrl.h>
 
 static int endpoint_id;
 
@@ -191,6 +192,7 @@ static int hci_rpmsg_send(struct net_buf *buf)
 #if defined(CONFIG_BT_CTLR_ASSERT_HANDLER)
 void bt_ctlr_assert_handle(char *file, uint32_t line)
 {
+	LOG_PANIC();
 	BT_ASSERT_MSG(false, "Controller assert in: %s at %d", file, line);
 }
 #endif /* CONFIG_BT_CTLR_ASSERT_HANDLER */
