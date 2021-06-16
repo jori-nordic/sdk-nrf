@@ -37,6 +37,8 @@ manifest:
       url-base: https://github.com/PelionIoT
     - name: memfault
       url-base: https://github.com/memfault
+    - name: jori
+      url-base: https://github.com/jori-nordic
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -55,8 +57,9 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/introduction/index.html
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
-      repo-path: sdk-zephyr
-      revision: a8f3c1dabb2a2b16c45b10f53118ef91247c0311
+      repo-path: zephyr
+      revision: nrf53_cap_fix_anangl
+      remote: jori
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
